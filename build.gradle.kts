@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+
 plugins {
 	id("org.springframework.boot") version "3.3.1"
 	id("io.spring.dependency-management") version "1.1.5"
@@ -25,6 +27,10 @@ dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	//implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 	implementation("io.github.oshai:kotlin-logging-jvm:7.0.0")
+
+	testImplementation("org.apache.httpcomponents.client5:httpclient5:5.3.1") //apache http client
+
+
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("io.projectreactor:reactor-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
@@ -38,5 +44,12 @@ kotlin {
 }
 
 tasks.withType<Test> {
-	useJUnitPlatform()
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed", "standardOut", "standardError")
+        showExceptions = true
+        exceptionFormat = TestExceptionFormat.FULL
+        showCauses = true
+        showStackTraces = true
+    }
 }
