@@ -1,0 +1,10 @@
+spring:
+    application:
+        name: webflux-leak-02
+    netty:
+        leak-detection: paranoid
+server:
+    port: 8080
+
+
+
