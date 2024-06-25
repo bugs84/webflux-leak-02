@@ -26,10 +26,9 @@ dependencies {
 	implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	//implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
+
 	implementation("io.github.oshai:kotlin-logging-jvm:7.0.0")
-
 	testImplementation("org.apache.httpcomponents.client5:httpclient5:5.3.1") //apache http client
-
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("io.projectreactor:reactor-test")
