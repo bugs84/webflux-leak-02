@@ -1,5 +1,6 @@
 package com.eleveo.webflux_leak_02
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.hc.client5.http.entity.mime.InputStreamBody
 import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder
 import org.apache.hc.client5.http.impl.classic.HttpClients
@@ -10,6 +11,8 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 
+private val log = KotlinLogging.logger {}
+
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 class T10WebfluxLeakApplicationTests : OutputCaptureTest() {
 
@@ -19,7 +22,6 @@ class T10WebfluxLeakApplicationTests : OutputCaptureTest() {
         callMultipart()
     }
 
-    //    @Test
     fun callMultipart() {
         val httpClient = HttpClients.createDefault()
 
@@ -33,11 +35,11 @@ class T10WebfluxLeakApplicationTests : OutputCaptureTest() {
 
 
         httpClient.execute(req) { response ->
-            println("""RESPONSE: ${response.code} ${response.reasonPhrase}""");
+            log.info { """RESPONSE: ${response.code} ${response.reasonPhrase}""" }
             assertThat(response.code).isEqualTo(200)
-            val entity1 = response.entity;
-            println(EntityUtils.toString(entity1));
-            EntityUtils.consume(entity1);
+            val entity1 = response.entity
+            log.info { "Body: '${EntityUtils.toString(entity1)}'" }
+            EntityUtils.consume(entity1)
             null;
         }
 
