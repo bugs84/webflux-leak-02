@@ -13,7 +13,7 @@ import java.nio.file.Paths
 private val log = KotlinLogging.logger {}
 
 @RestController
-class MultipartController10_PortableController {
+class MultipartController10Controller {
 
     var fileNumber = 1
 
