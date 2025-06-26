@@ -22,31 +22,30 @@ class T20WebfluxLeakApplicationTests : OutputCaptureTest() {
 		callMultipart()
 		callMultipart()
 	}
-	                                              	
+
 	fun callMultipart() {
 		val httpClient = HttpClients.createDefault()
 
 		val req = ClassicRequestBuilder.post("http://localhost:8080/load").build()
 
 		val reqEntity = MultipartEntityBuilder.create()
-//            .addPart("files", InputStreamBody(RandomByteInputStream(5 * 1024 * 1024), ContentType.parse("audio/mpeg")))
-
 			.addPart(
 				"files",
-				InputStreamBody(RandomByteInputStream(5 * 1024 * 1024), ContentType.parse("multipart/form-data"))
+				InputStreamBody(RandomByteInputStream(10172), ContentType.parse("audio/mpeg"))
 			)
-//            .addPart("files", InputStreamBody(RandomByteInputStream(5 * 1024 * 1024), ContentType.parse("audio/mpeg")))
 			.addPart(
 				"files",
-				InputStreamBody(FailingRandomByteInputStream(5 * 1024 * 1024), ContentType.parse("multipart/form-data"))
+				InputStreamBody(
+					FailingRandomByteInputStream(size = 6824, failWhenRemaining = 2000),
+					ContentType.parse("audio/mpeg")
+				)
 			)
 			.build()
 		req.entity = reqEntity
 
 
+		var clientClosed = false
 		try {
-
-
 			httpClient.execute(req) { response ->
 				log.info { """RESPONSE: ${response.code} ${response.reasonPhrase}""" }
 				assertThat(response.code).isEqualTo(200)
@@ -58,16 +57,22 @@ class T20WebfluxLeakApplicationTests : OutputCaptureTest() {
 		} catch (e: MiddleStreamException) {
 //			httpClient.close()
 			httpClient.close(CloseMode.IMMEDIATE)
+			clientClosed = true
 		}
+
+
+		if (!clientClosed) throw IllegalStateException("Client was not closed.")
+
 //		finally {
 //
 //		}
 //			httpClient.close()
 
-			System.gc()
-			System.gc()
-			System.gc()
-			Thread.sleep(1000)
-		}
-
+		System.gc()
+		System.gc()
+		System.gc()
+		Thread.sleep(1000)
 	}
+
+}
+
