@@ -1,5 +1,6 @@
 package com.eleveo.webflux_leak_02
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.core.io.buffer.DataBufferUtils
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE
@@ -13,6 +14,7 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
 data class UploadResponse(val description: String, val fileName: String, val fileSize: Long)
+private val log = KotlinLogging.logger {}
 
 @RestController
 class UploadController {
@@ -20,11 +22,22 @@ class UploadController {
 
     @PostMapping("/upload", consumes = [MULTIPART_FORM_DATA_VALUE], produces = [APPLICATION_JSON_VALUE])
     fun upload(@RequestBody allParts: Flux<PartEvent>): Mono<UploadResponse> {
+//        return allParts.doOnNext {
+//            log.info { "buffer size: ${it.content().readableByteCount()}" }
+//            DataBufferUtils.release(it.content())
+//        }.then(Mono.just(UploadResponse("aaa","bbb",111L)))
+
+
+
         return allParts
             .windowUntil(PartEvent::isLast)
             .concatMap { partFlux ->
                 partFlux.switchOnFirst { signal, events ->
                     if (signal.hasValue()) {
+//                        val content = signal.get()!!.content()
+//                        if(content.readableByteCount()>0) {
+//                            content.getByte(0)
+//                        }
                         when (val evt = signal.get()) {
                             is FormPartEvent -> {
                                 Mono.just("desc:${evt.value()}")
@@ -33,10 +46,15 @@ class UploadController {
                                 val filename = evt.filename()
                                 DataBufferUtils.join(events.map(PartEvent::content))
                                     .map { db ->
-                                        val bytes = ByteArray(db.readableByteCount())
-                                        db.read(bytes)
-                                        DataBufferUtils.release(db)
-                                        "file:$filename:${bytes.size}"
+                                        var filesize = -1
+                                        try {
+                                            val bytes = ByteArray(db.readableByteCount())
+                                            filesize = bytes.size
+                                            db.read(bytes)
+                                        } finally {
+                                            DataBufferUtils.release(db)
+                                        }
+                                        "file:$filename:${filesize}"
                                     }
                             }
                             else -> Mono.error<String>(RuntimeException("Unexpected event: $evt"))

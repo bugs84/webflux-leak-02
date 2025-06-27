@@ -20,10 +20,10 @@ class UploadControllerSimple {
 
 
     @PostMapping("/upload-simple", consumes = [MULTIPART_FORM_DATA_VALUE], produces = [APPLICATION_JSON_VALUE])
-    fun upload(@RequestBody allParts: Flux<PartEvent>): Mono<UploadResponse> {
+    fun upload(@RequestBody allParts: Flux<PartEvent>): Mono<String> {
         return allParts.doOnNext {
             log.info { "buffer size: ${it.content().readableByteCount()}" }
             DataBufferUtils.release(it.content())
-        }.then(Mono.just(UploadResponse("aaa","bbb",111L)))
+        }.then(Mono.just("Response text"))
     }
 }

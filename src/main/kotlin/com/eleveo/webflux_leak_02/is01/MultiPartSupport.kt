@@ -19,7 +19,10 @@ import kotlinx.coroutines.channels.consume
 import kotlinx.coroutines.channels.getOrElse
 import kotlinx.coroutines.channels.onSuccess
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.produceIn
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactive.awaitSingle
@@ -31,10 +34,13 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.codec.multipart.PartEvent
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
 import java.io.SequenceInputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption.TRUNCATE_EXISTING
+import java.time.Duration
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.pathString
 
@@ -49,31 +55,38 @@ class MultiPartSupport(
 	private val objectMapper: ObjectMapper,
 //	private val properties: InteractionServiceProperties,
 ) {
-//	private val tmpLocation get() = properties.mediaLocationPath.resolve("tmp")
+	//	private val tmpLocation get() = properties.mediaLocationPath.resolve("tmp")
 	private val tmpLocation get() = Path.of("tmp")
-//	private val ioContext get() = Dispatchers.IO + observationRegistry.asContextElement()
+
+	//	private val ioContext get() = Dispatchers.IO + observationRegistry.asContextElement()
 	private val ioContext get() = Dispatchers.IO
 
 	suspend fun <R> handleMultiPartRequest(
 		allPartsEvents: Flux<PartEvent>,
 		handleFn: suspend MultiPartRequest.() -> R
 	): R = coroutineScope {
-		allPartsEvents.windowUntil(PartEvent::isLast).asFlow().produceIn(this).consume {
-			try {
+		allPartsEvents
+			.doOnNext { partEvent ->
+				log.info { "Event received: ${partEvent.content()}" }
+			}
+			.windowUntil(PartEvent::isLast).asFlow()//.buffer(0)
+			.produceIn(this).consume {
+				try {
 //				mediaService.inTransaction { MultiPartRequest(this).handleFn() }
-				mediaServiceInTransaction { MultiPartRequest(this).handleFn() }
-			} finally {
-				// ensure all buffers are always fully released - especially in case of a failure
-				consumeAsFlow().collect { remainingPart ->
-					remainingPart.map { it.content() }.subscribe(DataBufferUtils.releaseConsumer()) // release untouched content
+					mediaServiceInTransaction { MultiPartRequest(this).handleFn() }
+				} finally {
+					// ensure all buffers are always fully released - especially in case of a failure
+					consumeAsFlow().collect { remainingPart ->
+						remainingPart.map { it.content() }
+							.subscribe(DataBufferUtils.releaseConsumer()) // release untouched content
+					}
 				}
 			}
-		}
 	}
 
-		private suspend inline fun <R> mediaServiceInTransaction(crossinline function: suspend () -> R): R {
-			return function()
-		}
+	private suspend inline fun <R> mediaServiceInTransaction(crossinline function: suspend () -> R): R {
+		return function()
+	}
 
 	/**
 	 * Object that exposes additional functions for handling multipart messages,
@@ -91,7 +104,7 @@ class MultiPartSupport(
 			getNextPart(partName).parseJson(partName, dtoClass)
 
 		suspend fun nextPartAsTempFile(partName: String) =
-			getNextPart(partName).asTempFilePart(partName, /*currentMediaTransaction()*/)
+			getNextPart(partName).asTempFilePart(partName /*currentMediaTransaction()*/)
 
 //		suspend fun nextPartAsMedia(partName: String, segment: Segment, mediaInfo: MediaInfo) =
 //			getNextPart(partName).asMediaContentFor(partName, segment, mediaInfo, currentMediaTransaction())
@@ -145,26 +158,57 @@ class MultiPartSupport(
 		private suspend fun Flux<PartEvent>.asTempFilePart(
 			partName: String,
 //			mediaTransaction: MediaTransaction
-		): TempFilePart =
-			switchOnFirst { signal, events ->
-				val event = signal.get() ?: return@switchOnFirst events.cast(TempFilePart::class.java) // propagate error/cancel
-				mono(ioContext) {
-					val filename = event.headers().contentDisposition.filename ?: ""
-					val content = events.map(PartEvent::content)
-					val tempFile = try {
-						checkPartName(event, partName)
-						val extension = filename.getExtensionSanitized() ?: "tmp"
-						Files.createTempFile(tmpLocation, "multipart-", ".$extension") // blocking operation
-					} catch (exc: Exception) {
-						content.subscribe(DataBufferUtils.releaseConsumer()) // release on failure
-						throw exc
-					}
-					// mediaTransaction.onCleanup { tempFile.deleteIfExists() } - Removed No cleanup after transaction
-					DataBufferUtils.write(content, tempFile, TRUNCATE_EXISTING).awaitSingleOrNull()
-					TempFilePart(event.headers(), tempFile)
-				}
-			}.awaitSingle()
+		): Void? =
+			doOnNext { log.info { "Event before switchOnFirst: ${it.content()}" } }
+//                .flatMap { event ->
+//                    mono(ioContext) {
+//                        try {
+//                            delay(10000) //IMPORTANT DELAY
+//                        } catch (e: Exception) {
+//                            log.info(e) { "Event delayCatch ${event.content()}" }
+//                            DataBufferUtils.release(event.content())
+//                            throw e
+//                        }
+//                    }
+//                }
 
+				.switchOnFirst { signal, events ->
+					val event = signal.get()
+						?: return@switchOnFirst events.cast(Void::class.java) // propagate error/cancel
+
+					DataBufferUtils.release(event.content())
+					events.delaySubscription(Duration.ofSeconds(10))
+						.map(PartEvent::content).doOnNext(DataBufferUtils::release)
+
+
+//                    Mono.defer {
+//                        try {
+//                            Thread.sleep(10000)
+//                        } finally {
+//                            log.info { "Event release after sleep: ${event.content()}" }
+//                            DataBufferUtils.release(event.content())
+//                        }
+//                        Mono.just(event)
+//                    }.subscribeOn(Schedulers.boundedElastic())
+
+
+//                    mono(ioContext) {
+//                        try {
+//                            delay(10000) //IMPORTANT DELAY
+//                        } catch (e: Exception) {
+//                            log.info(e) { "Event delayCatch ${event.content()}" }
+//                            DataBufferUtils.release(event.content())
+//                            throw e
+//                        }
+//                        null
+//                    }
+
+
+//                        .thenMany(events).map(PartEvent::content).doOnNext(DataBufferUtils::release) // release all buffers after processing
+				}
+
+
+				.then().awaitSingleOrNull()
 
 
 //		fun mediaInfoWithMediaFormat(mediaInfo: MediaInfo, headers: HttpHeaders) =

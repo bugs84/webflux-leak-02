@@ -20,7 +20,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 private val log = KotlinLogging.logger {}
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
-class UploadControllerTest {
+class UploadControllerTest : OutputCaptureTest() {
 
     @Autowired
     lateinit var client: WebTestClient
@@ -47,7 +47,7 @@ class UploadControllerTest {
 
     @Test
    	fun testMultipleTimes() {
-   		repeat(10) {
+   		repeat(2) {
    			println("Iteration: $it")
    			callMultipart()
    		}

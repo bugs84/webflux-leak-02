@@ -11,70 +11,78 @@ import org.apache.hc.core5.io.CloseMode
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
+import kotlin.random.Random
 
 private val log = KotlinLogging.logger {}
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 class T20WebfluxLeakApplicationTests : OutputCaptureTest() {
 
-	@Test
-	fun testMultipleTimes() {
-		repeat(10) {
-			println("Iteration: $it")
-			callMultipart()
-		}
-	}
+    @Test
+    fun testMultipleTimes() {
+        repeat(100) {
+            println("Iteration: $it")
+            callMultipart()
+        }
 
-	fun callMultipart() {
-		val httpClient = HttpClients.createDefault()
+        System.gc()
+        System.gc()
+        System.gc()
+        Thread.sleep(1000)
+    }
 
-		val req = ClassicRequestBuilder.post("http://localhost:8080/load").build()
+    fun callMultipart() {
+        val httpClient = HttpClients.createDefault()
 
-		val reqEntity = MultipartEntityBuilder.create()
-			.addPart(
-				"files",
-				InputStreamBody(RandomByteInputStream(10172), ContentType.parse("audio/mpeg"))
-			)
-			.addPart(
-				"files",
-				InputStreamBody(
-					FailingRandomByteInputStream(size = 6824, failWhenRemaining = 2000),
-					ContentType.parse("audio/mpeg")
-				)
-			)
-			.build()
-		req.entity = reqEntity
+//        val req = ClassicRequestBuilder.post("http://localhost:8080/load").build()
+        val req = ClassicRequestBuilder.post("http://localhost:8080/upload-simple2").build()
+
+        val reqEntity = MultipartEntityBuilder.create()
+            .addPart(
+                "files",
+                InputStreamBody(RandomByteInputStream(10172), ContentType.parse("audio/mpeg"))
+            )
+//			.addPart(
+//				"files",
+//				InputStreamBody(RandomByteInputStream(10172), ContentType.parse("audio/mpeg"))
+//			)
+            .addPart(
+                "files",
+                InputStreamBody(
+//					FailingRandomByteInputStream(size = 6824, failWhenRemaining = Random.nextInt(10).also { log.info { "Failing at $it bytes"} }),
+                    FailingRandomByteInputStream(size = 6824, failWhenRemaining = 1200),
+                    ContentType.parse("audio/mpeg")
+                )
+            )
+            .build()
+        req.entity = reqEntity
 
 
-		var clientClosed = false
-		try {
-			httpClient.execute(req) { response ->
-				log.info { """RESPONSE: ${response.code} ${response.reasonPhrase}""" }
-				assertThat(response.code).isEqualTo(200)
-				val entity1 = response.entity
-				log.info { "Body: '${EntityUtils.toString(entity1)}'" }
-				EntityUtils.consume(entity1)
-				null;
-			}
-		} catch (e: MiddleStreamException) {
+        var clientClosed = false
+        try {
+            httpClient.execute(req) { response ->
+                log.info { """RESPONSE: ${response.code} ${response.reasonPhrase}""" }
+                assertThat(response.code).isEqualTo(200)
+                val entity1 = response.entity
+                log.info { "Body: '${EntityUtils.toString(entity1)}'" }
+                EntityUtils.consume(entity1)
+                null;
+            }
+        } catch (e: MiddleStreamException) {
 //			httpClient.close()
-			httpClient.close(CloseMode.IMMEDIATE)
-			clientClosed = true
-		}
+            httpClient.close(CloseMode.IMMEDIATE)
+            clientClosed = true
+        }
 
 
-		if (!clientClosed) throw IllegalStateException("Client was not closed.")
+        if (!clientClosed) throw IllegalStateException("Client was not closed.")
 
 //		finally {
 //
 //		}
 //			httpClient.close()
 
-		System.gc()
-		System.gc()
-		System.gc()
-		Thread.sleep(1000)
-	}
+    }
 
 }
 

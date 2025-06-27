@@ -33,10 +33,10 @@ class InteractionResource(
 			val result = mutableListOf<SegmentUnitOfWork>()
 
 			val file1 = nextPartAsTempFile("files")
-			result.add(SegmentUnitOfWork(description = "File1: ${file1.path.fileName}"))
+//			result.add(SegmentUnitOfWork(description = "File1: ${file1.path.fileName}"))
 
 			val file2 = nextPartAsTempFile("files")
-			result.add(SegmentUnitOfWork(description = "File2: ${file2.path.fileName}"))
+//			result.add(SegmentUnitOfWork(description = "File2: ${file2.path.fileName}"))
 
 
 			result
