@@ -1,4 +1,4 @@
-package com.eleveo.webflux_leak_02.is01
+package com.eleveo.webflux_leak_02.sample02_is_with_delay
 
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE
@@ -8,16 +8,14 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Flux
-import java.time.Duration
 
 @RestController
-class InteractionResource(
-	private val multiPartSupport: MultiPartSupport
+class InteractionResource2(
+	private val multiPartSupport: MultiPartSupport2
 ) {
 
-	//	@PostMapping("/api/interaction-service/interactions/load",
 	@PostMapping(
-		"/load",
+		"/sample02",
 		consumes = [MULTIPART_FORM_DATA_VALUE], produces = [APPLICATION_JSON_VALUE]
 	)
 	suspend fun importInteractionWithMedia(
@@ -47,13 +45,15 @@ class InteractionResource(
 		return InteractionDto("INTERACTION { unitOfWorks=[${result.map { it.description }.joinToString { "," }}]}")
 	}
 
+	data class SegmentUnitOfWork(
+		val description: String,
+	)
+
+	data class InteractionDto(
+		val description: String,
+	)
 
 }
 
-data class SegmentUnitOfWork(
-	val description: String,
-)
 
-data class InteractionDto(
-	val description: String,
-)
+

@@ -1,14 +1,6 @@
-package com.eleveo.webflux_leak_02.is01
+package com.eleveo.webflux_leak_02.sample01_is
 
-//import com.eleveo.interactionservice.config.InteractionServiceProperties
-//import com.eleveo.interactionservice.db.model.MediaInfo
-//import com.eleveo.interactionservice.db.model.Segment
-//import com.eleveo.interactionservice.db.util.MediaInfoUriConverter
-//import com.eleveo.interactionservice.media.MediaService
-//import com.eleveo.interactionservice.media.MediaService.MediaTransaction
-//import com.eleveo.interactionservice.media.SupportedMediaFormat
-//import com.eleveo.interactionservice.media.currentMediaTransaction
-//import com.eleveo.interactionservice.media.inTransaction
+
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.github.oshai.kotlinlogging.KotlinLogging
 //import io.micrometer.core.instrument.kotlin.asContextElement
@@ -35,15 +27,13 @@ import java.io.SequenceInputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption.TRUNCATE_EXISTING
-import kotlin.io.path.deleteIfExists
-import kotlin.io.path.pathString
 
 private val extensionSanitizeRegex = "\\W+".toRegex()
 
 private val log = KotlinLogging.logger {}
 
 @Component
-class MultiPartSupport(
+class MultiPartSupport1(
 //	private val mediaService: MediaService,
 //	private val observationRegistry: ObservationRegistry,
 	private val objectMapper: ObjectMapper,
