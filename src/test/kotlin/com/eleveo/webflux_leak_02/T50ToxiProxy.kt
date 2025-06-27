@@ -74,14 +74,16 @@ class T50SimpleCallToxiProxy : OutputCaptureTest() {
 		//val req = ClassicRequestBuilder.post("http://localhost:$proxyPort/sample02").build()
 
 		// IS switchOnFirst
-		val req = ClassicRequestBuilder.post("http://localhost:$proxyPort/sample03").build()
+		//val req = ClassicRequestBuilder.post("http://localhost:$proxyPort/sample03").build()
 
 		// IS flatMap
 		//val req = ClassicRequestBuilder.post("http://localhost:$proxyPort/sample04").build()
 
+		// Flux simple 01
+		//val req = ClassicRequestBuilder.post("http://localhost:$proxyPort/sample05").build()
 
-//        val req = ClassicRequestBuilder.post("http://localhost:$proxyPort/upload-simple").build()
-//        val req = ClassicRequestBuilder.post("http://localhost:$proxyPort/upload-simple2").build()
+		// Flux simple 02 more complex
+		val req = ClassicRequestBuilder.post("http://localhost:$proxyPort/sample06").build()
 
 		val reqEntity = MultipartEntityBuilder.create()
 			.addPart(
@@ -106,7 +108,7 @@ class T50SimpleCallToxiProxy : OutputCaptureTest() {
 			}
 			throw IllegalStateException("Expected to fail due to ToxyProxy limitData toxic, but it didn't fail.")
 		} catch (e: NoHttpResponseException) {
-			log.info { "Broken due to toxyProxy" }
+			log.info { "Broken due to toxiProxy" }
 		} finally {
 			httpClient.close()
 		}
