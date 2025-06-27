@@ -25,7 +25,7 @@ dependencies {
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 	implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
-	//implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
+	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 
 	implementation("io.github.oshai:kotlin-logging-jvm:7.0.0")
 //	testImplementation("org.apache.httpcomponents.client5:httpclient5:5.4")
@@ -35,6 +35,11 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("io.projectreactor:reactor-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+	testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
+
+	testImplementation("org.testcontainers:toxiproxy")
+
+
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
